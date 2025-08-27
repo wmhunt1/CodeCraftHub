@@ -6,13 +6,24 @@ const jwt = require('jsonwebtoken');
 exports.registerUser = async (req, res) => {
     const { username, email, password } = req.body;
     try {
+        console.log(req.body)
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = new User({ username, email, password: hashedPassword });
         await newUser.save();
         res.status(201).json({ message: 'User registered successfully.' });
     } catch (error) {
-        res.status(500).json({ error: 'Registration failed.' });
+    console.error(error); // This is the key change
+    if (error.code === 11000) {
+        // Mongoose error for duplicate key
+        return res.status(409).json({ error: 'Email already exists.' });
     }
+    // Handle other validation errors
+    if (error.name === 'ValidationError') {
+        return res.status(400).json({ error: error.message });
+    }
+    // Generic server error
+    res.status(500).json({ error: 'Registration failed.' });
+}
 };
 // Login user
 exports.loginUser = async (req, res) => {
